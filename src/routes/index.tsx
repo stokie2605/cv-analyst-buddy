@@ -57,6 +57,13 @@ const JOB_SEARCH_SKILLS = [
   "collaboration",
 ];
 
+const CHEF_HOSPITALITY_TERMS = ["chef", "kitchen", "culinary", "restaurant", "catering"];
+const ADMIN_OFFICE_TERMS = ["admin", "office", "clerical", "receptionist"];
+
+function containsAnyTerm(text: string, terms: string[]) {
+  return terms.some((term) => new RegExp(`\\b${term}\\b`, "i").test(text));
+}
+
 function generateJobSearchUrl(cvText: string) {
   const foundSkills = extractSkills(cvText);
   const rankedSkills = foundSkills
@@ -75,7 +82,12 @@ function generateJobSearchUrl(cvText: string) {
   )
     ? "customer support operations"
     : "junior analyst";
-  const detectedKeywords = rankedSkills.slice(0, 3).join(" ") || fallbackKeywords;
+  const industryKeywords = containsAnyTerm(cvText, CHEF_HOSPITALITY_TERMS)
+    ? "chef hospitality kitchen"
+    : containsAnyTerm(cvText, ADMIN_OFFICE_TERMS)
+      ? "administrative office assistant"
+      : fallbackKeywords;
+  const detectedKeywords = rankedSkills.slice(0, 3).join(" ") || industryKeywords;
 
   return `https://www.google.com/search?q=jobs+near+me+${encodeURIComponent(detectedKeywords)}&ibp=htl;jobs`;
 }
