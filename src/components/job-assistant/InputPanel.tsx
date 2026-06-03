@@ -65,17 +65,17 @@ export function InputPanel({
       <div className="grid gap-4 lg:grid-cols-2">
         <Field
           title="Your CV"
-          hint="Paste your CV, résumé, or a summary of your work experience."
+          hint="Paste your CV, resume, or a summary of your work experience."
           value={cv}
           onChange={onCvChange}
-          placeholder="Paste your CV here…"
+          placeholder="Paste your CV here..."
         />
         <Field
           title="Job description"
           hint="Paste the full job posting, including responsibilities and requirements."
           value={jd}
           onChange={onJdChange}
-          placeholder="Paste the job description here…"
+          placeholder="Paste the job description here..."
         />
       </div>
       <div className="flex flex-wrap items-center gap-2">
@@ -83,7 +83,7 @@ export function InputPanel({
           {isAnalysing ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />
-              Analysing…
+              Analysing...
             </>
           ) : (
             "Analyse match"

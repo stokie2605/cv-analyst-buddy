@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { InputPanel } from "@/components/job-assistant/InputPanel";
 import { ResultsPanel } from "@/components/job-assistant/ResultsPanel";
 import { ResultsSkeleton } from "@/components/job-assistant/ResultsSkeleton";
+import { GeminiSettings } from "@/components/job-assistant/GeminiSettings";
 import { analyzeMatch } from "@/lib/job-assistant/analyzer";
 import { SAMPLE_CV, SAMPLE_JOB_DESCRIPTION } from "@/lib/job-assistant/sample-data";
 import type { AnalysisResult } from "@/lib/job-assistant/types";
@@ -86,7 +87,7 @@ function JobAssistantPage() {
   return (
     <div className="min-h-screen bg-muted/30">
       <header className="border-b bg-background">
-        <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-4 sm:px-6">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-3 px-4 py-4 sm:px-6">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
             <Sparkles className="h-4 w-4" />
           </div>
@@ -98,6 +99,7 @@ function JobAssistantPage() {
               Paste a CV and a job description to get an automatic, evidence-backed match.
             </p>
           </div>
+          <GeminiSettings />
         </div>
       </header>
 

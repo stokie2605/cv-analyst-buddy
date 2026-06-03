@@ -1,192 +1,160 @@
-import type { AnalysisResult, EvidenceSnippet, ScoreFactor } from "./types";
-import { extractSkills, SKILL_DICTIONARY } from "./skills-dictionary";
+import { GoogleGenAI, Type } from "@google/genai";
+import type { AnalysisResult } from "./types";
+import { runLocalRuleBasedAnalysis } from "./local-analyzer-fallback";
 
-// Split into sentence/bullet chunks while preserving original text for evidence.
-function chunkText(text: string): string[] {
-  return text
-    .split(/(?:\r?\n+|(?<=[.!?])\s+)/)
-    .map((c) => c.replace(/^[-•*\d.)\s]+/, "").trim())
-    .filter((c) => c.length > 20);
+const GEMINI_KEY_STORAGE = "gemini_api_key";
+
+const responseSchema = {
+  type: Type.OBJECT,
+  properties: {
+    matchScore: {
+      type: Type.NUMBER,
+      description: "Overall match percentage from 0 to 100.",
+    },
+    matchSummary: {
+      type: Type.STRING,
+      description: "Brief, practical summary of the candidate's fit.",
+    },
+    skillsFound: {
+      type: Type.ARRAY,
+      items: { type: Type.STRING },
+      description: "Matching skills and role signals found in both CV and job description.",
+    },
+    missingSignals: {
+      type: Type.ARRAY,
+      items: { type: Type.STRING },
+      description: "Important skills, keywords, or experience signals missing or weak in the CV.",
+    },
+    cvBulletSuggestions: {
+      type: Type.ARRAY,
+      items: { type: Type.STRING },
+      description: "Tailored CV bullet suggestions grounded in the candidate's real experience.",
+    },
+    interviewPrep: {
+      type: Type.ARRAY,
+      items: { type: Type.STRING },
+      description: "Likely interview questions based on role fit and gaps.",
+    },
+    retrievedEvidence: {
+      type: Type.ARRAY,
+      items: {
+        type: Type.OBJECT,
+        properties: {
+          source: {
+            type: Type.STRING,
+            enum: ["CV", "Job Description"],
+          },
+          text: { type: Type.STRING },
+          signals: {
+            type: Type.ARRAY,
+            items: { type: Type.STRING },
+          },
+        },
+        required: ["source", "text", "signals"],
+      },
+    },
+    scoreBreakdown: {
+      type: Type.ARRAY,
+      items: {
+        type: Type.OBJECT,
+        properties: {
+          label: { type: Type.STRING },
+          score: { type: Type.NUMBER },
+          detail: { type: Type.STRING },
+        },
+        required: ["label", "score", "detail"],
+      },
+    },
+  },
+  required: [
+    "matchScore",
+    "matchSummary",
+    "skillsFound",
+    "missingSignals",
+    "cvBulletSuggestions",
+    "interviewPrep",
+    "retrievedEvidence",
+    "scoreBreakdown",
+  ],
+};
+
+function getSavedGeminiKey(): string | null {
+  if (typeof window === "undefined") return null;
+  return window.localStorage.getItem(GEMINI_KEY_STORAGE);
 }
 
-function countMatches(haystack: string, needle: string): number {
-  if (!needle) return 0;
-  const re = new RegExp(`\\b${needle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "gi");
-  return (haystack.match(re) || []).length;
+function clampScore(result: AnalysisResult): AnalysisResult {
+  return {
+    ...result,
+    matchScore: Math.max(0, Math.min(100, Math.round(result.matchScore))),
+    scoreBreakdown: result.scoreBreakdown.map((factor) => ({
+      ...factor,
+      score: Math.max(0, Math.min(100, Math.round(factor.score))),
+    })),
+  };
 }
 
-function hasMetric(text: string): boolean {
-  return /\b\d+%?|\b\d+\+|\$\d|\d+ ?(users|customers|hours|days|weeks|months|years|teams|reports)/i.test(text);
-}
+function parseGeminiResult(text: string): AnalysisResult {
+  const parsed = JSON.parse(text) as AnalysisResult;
 
-function summaryFor(score: number): string {
-  if (score >= 80) {
-    return "Strong match. Your CV already speaks the language of this role — focus on tightening evidence and metrics.";
+  if (
+    typeof parsed.matchScore !== "number" ||
+    typeof parsed.matchSummary !== "string" ||
+    !Array.isArray(parsed.skillsFound) ||
+    !Array.isArray(parsed.missingSignals) ||
+    !Array.isArray(parsed.cvBulletSuggestions) ||
+    !Array.isArray(parsed.interviewPrep) ||
+    !Array.isArray(parsed.retrievedEvidence) ||
+    !Array.isArray(parsed.scoreBreakdown)
+  ) {
+    throw new Error("Gemini response did not match the expected analysis shape.");
   }
-  if (score >= 60) {
-    return "Promising match. You have several useful signals, but the CV should make the role fit clearer.";
-  }
-  if (score >= 40) {
-    return "Partial match. Some relevant experience is there, but key skills and signals are missing or buried.";
-  }
-  return "Early-stage match. Consider whether this role aligns with your current experience, or reshape the CV around its core requirements.";
-}
 
-function generateBullets(missing: string[], cvHasMetrics: boolean): string[] {
-  const templates = [
-    (skill: string) =>
-      `Built or contributed to a project using ${skill}, focusing on a clear outcome and measurable impact.`,
-    (skill: string) =>
-      `Used ${skill} to solve a practical problem end-to-end, from understanding requirements to shipping a working solution.`,
-    (skill: string) =>
-      `Collaborated with teammates to apply ${skill} in a real workflow, documenting decisions and trade-offs.`,
-    (skill: string) =>
-      `Investigated and improved an existing process using ${skill}, sharing findings with the wider team.`,
-  ];
-  const out: string[] = [];
-  const picks = missing.slice(0, 4);
-  picks.forEach((skill, i) => out.push(templates[i % templates.length](skill)));
-  if (!cvHasMetrics) {
-    out.push(
-      "Quantify at least two CV bullets with concrete numbers (users, tickets, time saved, % improvement) — recruiters scan for these first.",
-    );
-  }
-  if (out.length === 0) {
-    out.push(
-      "Your CV already covers the main skills. Tighten 2–3 bullets so each starts with a strong verb and ends with a measurable outcome.",
-    );
-  }
-  return out;
-}
-
-function generateInterviewQuestions(jdSkills: string[], missing: string[]): string[] {
-  const questions: string[] = [];
-  if (missing[0]) {
-    questions.push(`Tell me about a time you picked up ${missing[0]} quickly and used it to solve a real problem.`);
-  }
-  if (jdSkills.includes("ai") || jdSkills.includes("llm")) {
-    questions.push("How would you check whether an AI assistant is giving accurate, trustworthy answers?");
-  }
-  if (jdSkills.includes("customer support")) {
-    questions.push("Walk me through how you handled a difficult customer issue from first message to resolution.");
-  }
-  if (jdSkills.includes("documentation")) {
-    questions.push("Describe a piece of documentation you wrote that genuinely changed how a team worked.");
-  }
-  questions.push("What part of this role do you think you'd have to grow into, and how would you approach that?");
-  questions.push("What's a recent project you're proud of, and what would you do differently next time?");
-  return questions.slice(0, 5);
-}
-
-function retrieveEvidence(cv: string, jdSkills: string[]): EvidenceSnippet[] {
-  const chunks = chunkText(cv);
-  const scored = chunks.map((chunk) => {
-    const lower = chunk.toLowerCase();
-    const signals: string[] = [];
-    for (const skill of jdSkills) {
-      const aliases = SKILL_DICTIONARY[skill] || [skill];
-      if (aliases.some((a) => lower.includes(a))) signals.push(skill);
-    }
-    return { text: chunk, signals, score: signals.length + (hasMetric(chunk) ? 0.5 : 0) };
-  });
-  return scored
-    .filter((s) => s.signals.length > 0)
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 4)
-    .map((s) => ({ source: "CV" as const, text: s.text, signals: s.signals }));
+  return clampScore(parsed);
 }
 
 /**
- * Analyse a CV against a job description.
+ * Main dashboard analysis entry point.
  *
- * Local rule-based implementation. Returns the canonical AnalysisResult
- * shape so this function can later be swapped for an LLM call (e.g. Gemini)
- * with no UI changes.
+ * If the user saves a Gemini API key in browser storage, this uses Gemini live
+ * mode. Without a key, or if Gemini fails, it falls back to the local analyzer.
  */
-export async function analyzeMatch(cv: string, jd: string): Promise<AnalysisResult> {
-  // Simulated latency so the loading state is always visible.
-  await new Promise((r) => setTimeout(r, 1100));
+export async function analyzeMatch(cvText: string, jobDescription: string): Promise<AnalysisResult> {
+  const apiKey = getSavedGeminiKey();
 
-  const cvSkills = extractSkills(cv);
-  const jdSkills = extractSkills(jd);
+  if (!apiKey) {
+    return runLocalRuleBasedAnalysis(cvText, jobDescription);
+  }
 
-  const skillsFound = cvSkills.filter((s) => jdSkills.includes(s));
-  const missingSignals = jdSkills.filter((s) => !cvSkills.includes(s));
+  try {
+    const ai = new GoogleGenAI({ apiKey });
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: [
+        {
+          role: "user",
+          parts: [
+            {
+              text: `CV CONTENT:\n${cvText}\n\nTARGET JOB DESCRIPTION:\n${jobDescription}`,
+            },
+          ],
+        },
+      ],
+      config: {
+        responseMimeType: "application/json",
+        responseSchema,
+        systemInstruction:
+          "You are an expert technical recruiter and career coach. Compare the candidate CV against the target job description. Use only the supplied CV and job description. Do not invent experience. Return strict JSON only, matching the requested schema exactly. Keep feedback honest, supportive, specific, and practical.",
+      },
+    });
 
-  // Score factors (0–100 each)
-  const skillOverlap =
-    jdSkills.length === 0 ? 0 : Math.round((skillsFound.length / jdSkills.length) * 100);
+    if (!response.text) {
+      throw new Error("Gemini returned an empty response.");
+    }
 
-  const evidence = retrieveEvidence(cv, jdSkills);
-  const evidenceStrength = Math.min(
-    100,
-    Math.round(evidence.length * 22 + (evidence.some((e) => hasMetric(e.text)) ? 12 : 0)),
-  );
-
-  const cvWords = Math.max(1, cv.split(/\s+/).length);
-  const keywordHits = jdSkills.reduce((acc, skill) => {
-    const aliases = SKILL_DICTIONARY[skill] || [skill];
-    return acc + aliases.reduce((a, alias) => a + countMatches(cv, alias), 0);
-  }, 0);
-  const keywordDensity = Math.min(100, Math.round((keywordHits / cvWords) * 100 * 12));
-
-  // Role-term coverage: top frequency non-skill words in JD that also appear in CV.
-  const stop = new Set([
-    "the","and","with","for","you","our","are","will","that","this","from","have","your","into","using","work","role","team","about","they","their","what","when","where","which","while","also","each","such","other","more","most","very","than","then","been","over","into","just","like","make","made","need","want","help","both","across","within","there","these","those","under","upon","onto","because","including","include","includes","through","across",
-  ]);
-  const jdWordFreq: Record<string, number> = {};
-  jd.toLowerCase().replace(/[^a-z\s]/g, " ").split(/\s+/).forEach((w) => {
-    if (w.length >= 5 && !stop.has(w)) jdWordFreq[w] = (jdWordFreq[w] || 0) + 1;
-  });
-  const topRoleTerms = Object.entries(jdWordFreq)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 10)
-    .map(([w]) => w);
-  const cvLower = cv.toLowerCase();
-  const covered = topRoleTerms.filter((t) => cvLower.includes(t)).length;
-  const roleCoverage = topRoleTerms.length === 0 ? 0 : Math.round((covered / topRoleTerms.length) * 100);
-
-  const scoreBreakdown: ScoreFactor[] = [
-    {
-      label: "Skill overlap",
-      score: skillOverlap,
-      detail:
-        skillsFound.length === 0
-          ? "No direct skill matches were detected between the CV and the job description."
-          : `${skillsFound.length} of ${jdSkills.length} skills mentioned in the job appear in the CV.`,
-    },
-    {
-      label: "Evidence strength",
-      score: evidenceStrength,
-      detail:
-        evidence.length === 0
-          ? "The CV doesn't contain clear examples that map to the job's responsibilities."
-          : `Found ${evidence.length} CV passage${evidence.length === 1 ? "" : "s"} that back up the role's requirements${evidence.some((e) => hasMetric(e.text)) ? ", including measurable outcomes." : "."}`,
-    },
-    {
-      label: "Keyword density",
-      score: keywordDensity,
-      detail: `${keywordHits} job-relevant keyword mention${keywordHits === 1 ? "" : "s"} across the CV.`,
-    },
-    {
-      label: "Role-term coverage",
-      score: roleCoverage,
-      detail: `${covered} of the job description's top recurring terms also appear in the CV.`,
-    },
-  ];
-
-  const matchScore = Math.round(
-    skillOverlap * 0.4 + evidenceStrength * 0.25 + keywordDensity * 0.15 + roleCoverage * 0.2,
-  );
-
-  return {
-    matchScore,
-    matchSummary: summaryFor(matchScore),
-    skillsFound,
-    missingSignals,
-    cvBulletSuggestions: generateBullets(missingSignals, evidence.some((e) => hasMetric(e.text))),
-    interviewPrep: generateInterviewQuestions(jdSkills, missingSignals),
-    retrievedEvidence: evidence,
-    scoreBreakdown,
-  };
+    return parseGeminiResult(response.text);
+  } catch (error) {
+    console.error("Gemini analysis failed. Falling back to local rule-based analysis.", error);
+    return runLocalRuleBasedAnalysis(cvText, jobDescription);
+  }
 }
