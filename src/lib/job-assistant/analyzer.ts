@@ -143,8 +143,14 @@ export async function analyzeMatch(cvText: string, jobDescription: string): Prom
       config: {
         responseMimeType: "application/json",
         responseSchema,
-        systemInstruction:
-          "You are an expert technical recruiter and career coach. Compare the candidate CV against the target job description. Use only the supplied CV and job description. Do not invent experience. Return strict JSON only, matching the requested schema exactly. Keep feedback honest, supportive, specific, and practical.",
+        systemInstruction: `You are an expert technical recruiter and rigorous career coach. Compare the candidate CV against the target job description.
+
+CRITICAL OUTPUT CONSTRAINTS:
+1. RESPONSE SCHEMA: Return a single strict JSON object matching the requested schema exactly. Do not output markdown, code fences, commentary, or alternate key names.
+2. STRICT RESUME GROUNDING: When generating cvBulletSuggestions, never invent metrics, growth, tools, employers, certifications, responsibilities, or experiences the user did not explicitly list. Every suggestion must be an optimized rewrite of an existing CV line or a clearly framed transferable-skill suggestion grounded in actual CV evidence.
+3. EXACT EVIDENCE RETRIEVAL: For every object in retrievedEvidence, the text property must be an exact verbatim quote from either the CV or the job description. Do not paraphrase evidence snippets. The signals array must identify the specific keywords or role signals that made that quote relevant.
+4. MISSING SKILLS: If the job asks for a skill absent from the CV, place it in missingSignals and explain the gap honestly. Do not hide missing skills by inventing implied experience.
+5. TONE: Be honest, supportive, practical, and specific. Prioritize useful application improvements over generic encouragement.`,
       },
     });
 

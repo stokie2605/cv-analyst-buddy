@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import { Lock, Loader2 } from "lucide-react";
 
 interface InputPanelProps {
   cv: string;
@@ -77,6 +77,14 @@ export function InputPanel({
           onChange={onJdChange}
           placeholder="Paste the job description here..."
         />
+      </div>
+      <div className="flex gap-2 rounded-lg border bg-muted/50 p-3 text-xs leading-relaxed text-muted-foreground">
+        <Lock className="mt-0.5 h-4 w-4 shrink-0" />
+        <p>
+          <strong className="font-medium text-foreground">Privacy Notice:</strong> Your text stays local when using
+          Local Engine mode. If you enable Live Gemini AI, it is sent directly to Gemini using your own saved BYOK API
+          key. This app does not store, collect, harvest, or sell your CV data.
+        </p>
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <Button onClick={onAnalyse} disabled={isAnalysing} size="lg">
