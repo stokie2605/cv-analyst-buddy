@@ -32,31 +32,56 @@ function summaryFor(score: number): string {
   return "Early-stage match. Consider whether this role aligns with your current experience, or reshape the CV around its core requirements.";
 }
 
-function generateBullets(missing: string[], cvHasMetrics: boolean): string[] {
-  const templates = [
-    (skill: string) =>
-      `Built or contributed to a project using ${skill}, focusing on a clear outcome and measurable impact.`,
-    (skill: string) =>
-      `Used ${skill} to solve a practical problem end-to-end, from understanding requirements to shipping a working solution.`,
-    (skill: string) =>
-      `Collaborated with teammates to apply ${skill} in a real workflow, documenting decisions and trade-offs.`,
-    (skill: string) =>
-      `Investigated and improved an existing process using ${skill}, sharing findings with the wider team.`,
-  ];
-  const out: string[] = [];
-  const picks = missing.slice(0, 4);
-  picks.forEach((skill, i) => out.push(templates[i % templates.length](skill)));
+function cleanEvidenceText(text: string): string {
+  return text
+    .replace(/^["'“”]+|["'“”]+$/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function actionVerbFor(signals: string[]): string {
+  if (signals.some((signal) => ["analytics", "sql", "data"].includes(signal))) return "Analysed";
+  if (signals.some((signal) => ["documentation", "communication", "customer support"].includes(signal))) {
+    return "Supported";
+  }
+  if (signals.some((signal) => ["ai", "llm", "rag", "javascript", "typescript", "react"].includes(signal))) {
+    return "Built";
+  }
+  return "Delivered";
+}
+
+function generateBullets(
+  evidence: EvidenceSnippet[],
+  skillsFound: string[],
+  missing: string[],
+  cvHasMetrics: boolean,
+): string[] {
+  const out = evidence.slice(0, 3).map((item) => {
+    const signals = item.signals.length > 0 ? item.signals : skillsFound.slice(0, 2);
+    const signalText = signals.slice(0, 3).join(", ");
+    const sourceText = cleanEvidenceText(item.text);
+    const verb = actionVerbFor(signals);
+
+    return `${verb} work involving ${signalText}, using CV evidence such as "${sourceText}" - tighten this with a clear outcome, tool, or measurable result.`;
+  });
+
+  missing.slice(0, 2).forEach((skill) => {
+    out.push(
+      `Strategic gap to address: ${skill}. Add a truthful bullet only if you have real evidence, or frame nearby transferable experience clearly rather than claiming direct hands-on skill.`,
+    );
+  });
+
   if (!cvHasMetrics) {
     out.push(
-      "Quantify at least two CV bullets with concrete numbers (users, tickets, time saved, % improvement) — recruiters scan for these first.",
+      "Quantify at least two CV bullets with concrete numbers, such as users supported, tickets handled, reports produced, time saved, or percentage improvement.",
     );
   }
   if (out.length === 0) {
     out.push(
-      "Your CV already covers the main skills. Tighten 2–3 bullets so each starts with a strong verb and ends with a measurable outcome.",
+      "Your CV already covers the main skills. Tighten 2-3 bullets so each starts with a strong verb and ends with a measurable outcome.",
     );
   }
-  return out;
+  return [...new Set(out)].slice(0, 5);
 }
 
 function generateInterviewQuestions(jdSkills: string[], missing: string[]): string[] {
@@ -184,7 +209,12 @@ export async function runLocalRuleBasedAnalysis(cv: string, jd: string): Promise
     matchSummary: summaryFor(matchScore),
     skillsFound,
     missingSignals,
-    cvBulletSuggestions: generateBullets(missingSignals, evidence.some((e) => hasMetric(e.text))),
+    cvBulletSuggestions: generateBullets(
+      evidence,
+      skillsFound,
+      missingSignals,
+      evidence.some((e) => hasMetric(e.text)),
+    ),
     interviewPrep: generateInterviewQuestions(jdSkills, missingSignals),
     retrievedEvidence: evidence,
     scoreBreakdown,
