@@ -1,5 +1,5 @@
 import type { AnalysisResult, EvidenceSnippet, ScoreFactor } from "./types";
-import { extractSkills, SKILL_DICTIONARY } from "./skills-dictionary";
+import { extractSkills, keywordMatches, keywordMatchCount, SKILL_DICTIONARY } from "./skills-dictionary";
 
 // Split into sentence/bullet chunks while preserving original text for evidence.
 function chunkText(text: string): string[] {
@@ -7,12 +7,6 @@ function chunkText(text: string): string[] {
     .split(/(?:\r?\n+|(?<=[.!?])\s+)/)
     .map((c) => c.replace(/^[-•*\d.)\s]+/, "").trim())
     .filter((c) => c.length > 20);
-}
-
-function countMatches(haystack: string, needle: string): number {
-  if (!needle) return 0;
-  const re = new RegExp(`\\b${needle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "gi");
-  return (haystack.match(re) || []).length;
 }
 
 function hasMetric(text: string): boolean {
@@ -106,11 +100,10 @@ function generateInterviewQuestions(jdSkills: string[], missing: string[]): stri
 function retrieveEvidence(cv: string, jdSkills: string[]): EvidenceSnippet[] {
   const chunks = chunkText(cv);
   const scored = chunks.map((chunk) => {
-    const lower = chunk.toLowerCase();
     const signals: string[] = [];
     for (const skill of jdSkills) {
       const aliases = SKILL_DICTIONARY[skill] || [skill];
-      if (aliases.some((a) => lower.includes(a))) signals.push(skill);
+      if (aliases.some((alias) => keywordMatches(chunk, alias))) signals.push(skill);
     }
     return { text: chunk, signals, score: signals.length + (hasMetric(chunk) ? 0.5 : 0) };
   });
@@ -151,7 +144,7 @@ export async function runLocalRuleBasedAnalysis(cv: string, jd: string): Promise
   const cvWords = Math.max(1, cv.split(/\s+/).length);
   const keywordHits = jdSkills.reduce((acc, skill) => {
     const aliases = SKILL_DICTIONARY[skill] || [skill];
-    return acc + aliases.reduce((a, alias) => a + countMatches(cv, alias), 0);
+    return acc + aliases.reduce((a, alias) => a + keywordMatchCount(cv, alias), 0);
   }, 0);
   const keywordDensity = Math.min(100, Math.round((keywordHits / cvWords) * 100 * 12));
 

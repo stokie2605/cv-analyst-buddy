@@ -10,6 +10,7 @@ interface InputPanelProps {
   onCvChange: (v: string) => void;
   onJdChange: (v: string) => void;
   onAnalyse: () => void;
+  onFindJobs: () => void;
   onLoadSample: () => void;
   onClear: () => void;
 }
@@ -57,6 +58,7 @@ export function InputPanel({
   onCvChange,
   onJdChange,
   onAnalyse,
+  onFindJobs,
   onLoadSample,
   onClear,
 }: InputPanelProps) {
@@ -81,9 +83,9 @@ export function InputPanel({
       <div className="flex gap-2 rounded-lg border bg-muted/50 p-3 text-xs leading-relaxed text-muted-foreground">
         <Lock className="mt-0.5 h-4 w-4 shrink-0" />
         <p>
-          <strong className="font-medium text-foreground">Privacy Notice:</strong> Your text stays local when using
-          Local Engine mode. If you enable Live Gemini AI, it is sent directly to Gemini using your own saved BYOK API
-          key. This app does not store, collect, harvest, or sell your CV data.
+          <strong className="font-medium text-foreground">Privacy Notice:</strong> Your text data remains strictly local
+          or travels directly to the official Gemini API using your browser's local BYOK storage key. No data is
+          harvested, collected, or stored by this application.
         </p>
       </div>
       <div className="flex flex-wrap items-center gap-2">
@@ -99,6 +101,9 @@ export function InputPanel({
         </Button>
         <Button variant="outline" onClick={onLoadSample} disabled={isAnalysing}>
           Load sample
+        </Button>
+        <Button variant="secondary" onClick={onFindJobs} disabled={isAnalysing}>
+          🔍 Auto-Find Matching Jobs
         </Button>
         <Button variant="ghost" onClick={onClear} disabled={isAnalysing}>
           Clear

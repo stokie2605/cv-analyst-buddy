@@ -50,12 +50,58 @@ export const SKILL_DICTIONARY: Record<string, string[]> = {
   problemsolving: ["problem solving", "problem-solving", "troubleshoot", "debugging"],
 };
 
+function normalizeToken(token: string): string {
+  let normalized = token.toLowerCase().replace(/[^a-z0-9+#.]/g, "");
+
+  if (normalized.length > 6 && normalized.endsWith("ions")) {
+    normalized = normalized.slice(0, -4);
+  } else if (normalized.length > 5 && normalized.endsWith("ion")) {
+    normalized = normalized.slice(0, -3);
+  } else if (normalized.length > 5 && normalized.endsWith("ing")) {
+    normalized = normalized.slice(0, -3);
+  } else if (normalized.length > 4 && normalized.endsWith("ed")) {
+    normalized = normalized.slice(0, -2);
+  } else if (normalized.length > 4 && normalized.endsWith("s")) {
+    normalized = normalized.slice(0, -1);
+  }
+
+  if (normalized.length > 5 && normalized.endsWith("e")) {
+    normalized = normalized.slice(0, -1);
+  }
+
+  return normalized;
+}
+
+export function normalizeKeywordText(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9+#.\s-]/g, " ")
+    .split(/\s+/)
+    .map(normalizeToken)
+    .filter(Boolean)
+    .join(" ");
+}
+
+export function keywordMatches(text: string, keyword: string): boolean {
+  const normalizedText = ` ${normalizeKeywordText(text)} `;
+  const normalizedKeyword = normalizeKeywordText(keyword);
+  return normalizedKeyword.length > 0 && normalizedText.includes(` ${normalizedKeyword} `);
+}
+
+export function keywordMatchCount(text: string, keyword: string): number {
+  const normalizedKeyword = normalizeKeywordText(keyword);
+  if (!normalizedKeyword) return 0;
+
+  const normalizedText = normalizeKeywordText(text);
+  const escaped = normalizedKeyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return normalizedText.match(new RegExp(`\\b${escaped}\\b`, "g"))?.length ?? 0;
+}
+
 export function extractSkills(text: string): string[] {
-  const lower = ` ${text.toLowerCase()} `;
   const found = new Set<string>();
   for (const [skill, aliases] of Object.entries(SKILL_DICTIONARY)) {
     for (const alias of aliases) {
-      if (lower.includes(alias)) {
+      if (keywordMatches(text, alias)) {
         found.add(skill);
         break;
       }

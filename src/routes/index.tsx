@@ -6,6 +6,11 @@ import { ResultsPanel } from "@/components/job-assistant/ResultsPanel";
 import { ResultsSkeleton } from "@/components/job-assistant/ResultsSkeleton";
 import { GeminiSettings } from "@/components/job-assistant/GeminiSettings";
 import { analyzeMatch } from "@/lib/job-assistant/analyzer";
+import {
+  extractSkills,
+  keywordMatchCount,
+  SKILL_DICTIONARY,
+} from "@/lib/job-assistant/skills-dictionary";
 import { SAMPLE_CV, SAMPLE_JOB_DESCRIPTION } from "@/lib/job-assistant/sample-data";
 import type { AnalysisResult } from "@/lib/job-assistant/types";
 import { Sparkles } from "lucide-react";
@@ -31,6 +36,49 @@ export const Route = createFileRoute("/")({
 });
 
 const MIN_LENGTH = 50;
+
+const JOB_SEARCH_SKILLS = [
+  "customer support",
+  "analytics",
+  "sql",
+  "documentation",
+  "javascript",
+  "typescript",
+  "react",
+  "api",
+  "automation",
+  "ai",
+  "llm",
+  "rag",
+  "communication",
+  "project management",
+  "testing",
+  "problemsolving",
+  "collaboration",
+];
+
+function generateJobSearchUrl(cvText: string) {
+  const foundSkills = extractSkills(cvText);
+  const rankedSkills = foundSkills
+    .filter((skill) => JOB_SEARCH_SKILLS.includes(skill))
+    .map((skill) => ({
+      skill,
+      score: Math.max(
+        ...SKILL_DICTIONARY[skill].map((alias) => keywordMatchCount(cvText, alias)),
+      ),
+    }))
+    .sort((a, b) => b.score - a.score)
+    .map(({ skill }) => skill);
+
+  const fallbackKeywords = foundSkills.some((skill) =>
+    ["customer support", "communication", "documentation", "analytics"].includes(skill),
+  )
+    ? "customer support operations"
+    : "junior analyst";
+  const detectedKeywords = rankedSkills.slice(0, 3).join(" ") || fallbackKeywords;
+
+  return `https://www.google.com/search?q=jobs+near+me+${encodeURIComponent(detectedKeywords)}&ibp=htl;jobs`;
+}
 
 function JobAssistantPage() {
   const [cv, setCv] = useState("");
@@ -70,6 +118,17 @@ function JobAssistantPage() {
     } finally {
       setIsAnalysing(false);
     }
+  };
+
+  const handleFindJobs = () => {
+    if (!cv.trim()) {
+      toast.error("Paste your CV first", {
+        description: "The job finder uses your CV text to build a targeted Google Jobs search.",
+      });
+      return;
+    }
+
+    window.open(generateJobSearchUrl(cv), "_blank", "noopener,noreferrer");
   };
 
   const handleLoadSample = () => {
@@ -112,6 +171,7 @@ function JobAssistantPage() {
             onCvChange={setCv}
             onJdChange={setJd}
             onAnalyse={handleAnalyse}
+            onFindJobs={handleFindJobs}
             onLoadSample={handleLoadSample}
             onClear={handleClear}
           />
