@@ -8,13 +8,13 @@ import { EvidenceList } from "./EvidenceList";
 
 export function ResultsPanel({ result }: { result: AnalysisResult }) {
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-6">
       <ScoreCard score={result.matchScore} summary={result.matchSummary} />
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid min-w-0 grid-cols-1 gap-6 md:grid-cols-2">
         <SkillsCard found={result.skillsFound} missing={result.missingSignals} />
         <ScoreBreakdown breakdown={result.scoreBreakdown} />
       </div>
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid min-w-0 grid-cols-1 gap-6 md:grid-cols-2">
         <BulletSuggestions bullets={result.cvBulletSuggestions} />
         <InterviewPrep questions={result.interviewPrep} />
       </div>

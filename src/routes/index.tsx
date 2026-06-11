@@ -53,13 +53,13 @@ function CoverLetterTab({ cv, jd }: { cv: string; jd: string }) {
   };
 
   return (
-    <div className="rounded-xl border bg-background p-6 space-y-4">
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div>
-          <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
+    <div className="min-w-0 space-y-4 rounded-xl border bg-background p-6">
+      <div className="flex min-w-0 flex-wrap items-center justify-between gap-4">
+        <div className="min-w-0">
+          <h3 className="flex min-w-0 items-center gap-2 break-words text-base font-semibold text-foreground">
             <FileCheck className="h-4 w-4 text-purple-500" /> AI Cover Letter Builder
           </h3>
-          <p className="text-sm text-muted-foreground mt-0.5">
+          <p className="mt-0.5 break-words text-sm text-muted-foreground">
             Generates a custom, high-impact cover letter tailored directly to the targeted job description.
           </p>
         </div>
@@ -73,7 +73,7 @@ function CoverLetterTab({ cv, jd }: { cv: string; jd: string }) {
       </div>
 
       {coverLetter ? (
-        <div className="relative rounded-lg bg-muted/30 border p-4 font-mono text-xs whitespace-pre-wrap leading-relaxed text-foreground animate-in fade-in-50 duration-300">
+        <div className="relative min-w-0 whitespace-pre-wrap break-words rounded-lg border bg-muted/30 p-4 font-mono text-xs leading-relaxed text-foreground animate-in fade-in-50 duration-300">
           <Button
             size="sm"
             variant="outline"
@@ -88,7 +88,7 @@ function CoverLetterTab({ cv, jd }: { cv: string; jd: string }) {
           {coverLetter}
         </div>
       ) : (
-        <div className="rounded-lg bg-muted/40 p-8 border border-dashed text-center text-sm text-muted-foreground">
+        <div className="break-words rounded-lg border border-dashed bg-muted/40 p-8 text-center text-sm text-muted-foreground">
           {!cv.trim() || !jd.trim() ? (
             "Please paste or upload your CV and a job description above to unlock generation."
           ) : (
@@ -105,18 +105,18 @@ function CoverLetterTab({ cv, jd }: { cv: string; jd: string }) {
 // --- Application Pipeline Tracker Kanban View Component ---
 function TrackingBoardTab() {
   return (
-    <div className="rounded-xl border bg-background p-6">
-      <h3 className="text-base font-semibold text-foreground flex items-center gap-2 mb-2">
+    <div className="min-w-0 rounded-xl border bg-background p-6">
+      <h3 className="mb-2 flex min-w-0 items-center gap-2 break-words text-base font-semibold text-foreground">
         <Briefcase className="h-4 w-4 text-purple-500" /> Job Application Pipeline
       </h3>
-      <p className="text-sm text-muted-foreground mb-4">
+      <p className="mb-4 break-words text-sm text-muted-foreground">
         Track your live job hunting pipeline stages cleanly from applied, to interviews, to final offers.
       </p>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-3">
         {["Applied", "Interviewing", "Offers Received"].map((stage) => (
-          <div key={stage} className="rounded-lg bg-muted/50 p-4 border min-h-[150px]">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{stage}</span>
-            <div className="mt-4 text-xs text-center border border-dashed p-4 rounded text-muted-foreground bg-background/50">
+          <div key={stage} className="min-h-[150px] min-w-0 rounded-lg border bg-muted/50 p-4">
+            <span className="break-words text-xs font-semibold uppercase tracking-wider text-muted-foreground">{stage}</span>
+            <div className="mt-4 break-words rounded border border-dashed bg-background/50 p-4 text-center text-xs text-muted-foreground">
               Drop active roles here
             </div>
           </div>
@@ -333,11 +333,11 @@ function JobAssistantPage() {
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
             <Sparkles className="h-4 w-4" />
           </div>
-          <div>
-            <h1 className="text-base font-semibold text-foreground leading-tight">
+          <div className="min-w-0">
+            <h1 className="break-words text-base font-semibold leading-tight text-foreground">
               AI Job Application Assistant
             </h1>
-            <p className="text-xs text-muted-foreground">
+            <p className="break-words text-xs text-muted-foreground">
               Analyze CV compatibility metrics and coordinate your interview pipeline in real time.
             </p>
           </div>
@@ -345,21 +345,21 @@ function JobAssistantPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
+      <main className="mx-auto min-w-0 max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
         {/* File Drop Zone area */}
-        <div className="mb-6">
+        <div className="mb-6 min-w-0">
           <div
             onDragOver={handleDragOver}
             onDragLeave={() => setIsDragging(false)}
             onDrop={handleDrop}
-            className={`relative rounded-xl border-2 border-dashed p-6 text-center transition-all duration-300 ${
+            className={`relative min-w-0 rounded-xl border-2 border-dashed p-6 text-center transition-all duration-300 ${
               isDragging ? "border-purple-500 bg-purple-500/10" : uploadedFileName ? "border-green-500/50 bg-green-500/5" : "border-muted-foreground/20 bg-background"
             }`}
           >
             <input type="file" id="cv-file-upload" accept=".txt,.pdf,.docx" onChange={handleFileChange} className="absolute inset-0 cursor-pointer opacity-0" />
-            <div className="flex flex-col items-center justify-center gap-2">
+            <div className="flex min-w-0 flex-col items-center justify-center gap-2">
               {uploadedFileName ? <FileText className="h-5 w-5 text-green-500" /> : <Upload className="h-5 w-5 text-purple-500" />}
-              <p className="text-sm font-medium text-foreground">{uploadedFileName ? `Active file: ${uploadedFileName}` : "Drop your CV here or browse"}</p>
+              <p className="max-w-full break-words text-sm font-medium text-foreground">{uploadedFileName ? `Active file: ${uploadedFileName}` : "Drop your CV here or browse"}</p>
             </div>
           </div>
         </div>
@@ -381,7 +381,7 @@ function JobAssistantPage() {
         </section>
 
         {/* 🗂️ NAVIGATION WORKSPACE TABS */}
-        <div className="mt-8 border-b flex flex-wrap gap-4 text-sm font-medium text-muted-foreground">
+        <div className="mt-8 flex min-w-0 flex-wrap gap-4 border-b text-sm font-medium text-muted-foreground">
           <button 
             onClick={() => setActiveTab("analysis")}
             className={`pb-3 border-b-2 transition-colors ${activeTab === "analysis" ? "border-primary text-foreground font-semibold" : "border-transparent hover:text-foreground"}`}
@@ -409,10 +409,10 @@ function JobAssistantPage() {
         </div>
 
         {/* DYNAMIC INTERFACE ROUTER BLOCK */}
-        <section ref={resultsRef} className="mt-6">
+        <section ref={resultsRef} className="mt-6 min-w-0">
           {activeTab === "analysis" && (
             isAnalysing ? <ResultsSkeleton /> : result ? <ResultsPanel result={result} /> : (
-              <div className="rounded-xl border border-dashed bg-background/60 px-6 py-12 text-center text-sm text-muted-foreground">
+              <div className="break-words rounded-xl border border-dashed bg-background/60 px-6 py-12 text-center text-sm text-muted-foreground">
                 Paste files above and tap <span className="font-medium text-foreground">Analyse match</span> to launch processing parameters.
               </div>
             )
@@ -420,7 +420,7 @@ function JobAssistantPage() {
           
           {activeTab === "interview-prep" && (
             result ? <InterviewPrep questions={result.interviewPrep || []} /> : (
-              <div className="rounded-xl border border-dashed bg-background/60 px-6 py-12 text-center text-sm text-muted-foreground">
+              <div className="break-words rounded-xl border border-dashed bg-background/60 px-6 py-12 text-center text-sm text-muted-foreground">
                 Run an analysis match first to populate your targeted interview questions.
               </div>
             )

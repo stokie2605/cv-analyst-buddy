@@ -16,20 +16,20 @@ function scoreTone(score: number) {
 export function ScoreCard({ score, summary }: ScoreCardProps) {
   const tone = scoreTone(score);
   return (
-    <Card>
+    <Card className="min-w-0">
       <CardHeader>
         <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
           Match score
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex items-baseline gap-3">
+      <CardContent className="min-w-0 space-y-4">
+        <div className="flex min-w-0 flex-wrap items-baseline gap-3">
           <span className="text-6xl font-semibold tabular-nums text-foreground">{score}</span>
           <span className="text-2xl font-medium text-muted-foreground">/ 100</span>
           <span className={`ml-auto text-sm font-medium ${tone.className}`}>{tone.label}</span>
         </div>
         <Progress value={score} className="h-2" />
-        <p className="text-sm text-foreground leading-relaxed">{summary}</p>
+        <p className="break-words text-sm leading-relaxed text-foreground">{summary}</p>
       </CardContent>
     </Card>
   );

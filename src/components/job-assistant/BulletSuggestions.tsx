@@ -9,21 +9,21 @@ export function BulletSuggestions({ bullets }: { bullets: string[] }) {
   };
 
   return (
-    <Card>
+    <Card className="min-w-0">
       <CardHeader>
         <CardTitle>Suggested CV bullets</CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="min-w-0">
         {bullets.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
+          <p className="break-words text-sm text-muted-foreground">
             No bullet suggestions returned. Try adding more role details or CV evidence.
           </p>
         ) : (
-          <ul className="space-y-3">
+          <ul className="min-w-0 space-y-3">
             {bullets.map((b, i) => (
-              <li key={i} className="flex gap-3 text-sm text-foreground leading-relaxed">
+              <li key={i} className="flex min-w-0 gap-3 text-sm leading-relaxed text-foreground">
                 <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
-                <span className="flex-1">{b}</span>
+                <span className="min-w-0 flex-1 break-words">{b}</span>
                 <Button
                   type="button"
                   variant="ghost"

@@ -42,22 +42,22 @@ function Field({
   };
 
   return (
-    <Card className="flex flex-col">
+    <Card className="min-w-0 flex flex-col">
       <CardHeader className="pb-3">
-        <div className="flex items-baseline justify-between gap-3">
-          <CardTitle className="text-base">{title}</CardTitle>
+        <div className="flex min-w-0 items-baseline justify-between gap-3">
+          <CardTitle className="min-w-0 break-words text-base">{title}</CardTitle>
           <span className="text-xs text-muted-foreground tabular-nums">
             {localTextValue.length.toLocaleString()} chars
           </span>
         </div>
-        <p className="text-xs text-muted-foreground">{hint}</p>
+        <p className="break-words text-xs text-muted-foreground">{hint}</p>
       </CardHeader>
-      <CardContent className="flex-1">
+      <CardContent className="min-w-0 flex-1">
         <Textarea
           value={localTextValue}
           onChange={(e) => handleTextChange(e.target.value)}
           placeholder={placeholder}
-          className="min-h-[280px] resize-y font-mono text-xs leading-relaxed"
+          className="min-h-[280px] min-w-0 resize-y break-words font-mono text-xs leading-relaxed"
         />
       </CardContent>
     </Card>
@@ -76,8 +76,8 @@ export function InputPanel({
   onClear,
 }: InputPanelProps) {
   return (
-    <div className="space-y-4">
-      <div className="grid gap-4 lg:grid-cols-2">
+    <div className="min-w-0 space-y-4">
+      <div className="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-2">
         <Field
           title="Your CV"
           hint="Paste your CV, resume, or a summary of your work experience."
@@ -93,9 +93,9 @@ export function InputPanel({
           placeholder="Paste the job description here..."
         />
       </div>
-      <div className="flex gap-2 rounded-lg border bg-muted/50 p-3 text-xs leading-relaxed text-muted-foreground">
+      <div className="flex min-w-0 gap-2 rounded-lg border bg-muted/50 p-3 text-xs leading-relaxed text-muted-foreground">
         <Lock className="mt-0.5 h-4 w-4 shrink-0" />
-        <p>
+        <p className="min-w-0 break-words">
           <strong className="font-medium text-foreground">Privacy Notice:</strong> Your text data remains strictly local
           or travels directly to the official Gemini API using your browser's local BYOK storage key. No data is
           harvested, collected, or stored by this application.
