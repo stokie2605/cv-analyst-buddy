@@ -50,6 +50,8 @@ export const SKILL_DICTIONARY: Record<string, string[]> = {
   problemsolving: ["problem solving", "problem-solving", "troubleshoot", "debugging"],
 };
 
+const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 function normalizeToken(token: string): string {
   let normalized = token.toLowerCase().replace(/[^a-z0-9+#.]/g, "");
 
@@ -82,30 +84,54 @@ export function normalizeKeywordText(text: string): string {
     .join(" ");
 }
 
+const NORMALIZED_SKILL_DICTIONARY = Object.fromEntries(
+  Object.entries(SKILL_DICTIONARY).map(([skill, aliases]) => [
+    skill,
+    [...new Set(aliases.map(normalizeKeywordText).filter(Boolean))],
+  ]),
+) as Record<string, string[]>;
+
+const NORMALIZED_SKILL_ENTRIES = Object.entries(NORMALIZED_SKILL_DICTIONARY);
+
+export function getNormalizedSkillAliases(skill: string): string[] {
+  return NORMALIZED_SKILL_DICTIONARY[skill] || [normalizeKeywordText(skill)].filter(Boolean);
+}
+
+export function normalizedKeywordMatches(normalizedText: string, normalizedKeyword: string): boolean {
+  return normalizedKeyword.length > 0 && ` ${normalizedText} `.includes(` ${normalizedKeyword} `);
+}
+
+export function normalizedKeywordMatchCount(normalizedText: string, normalizedKeyword: string): number {
+  if (!normalizedKeyword) return 0;
+
+  return normalizedText.match(new RegExp(`\\b${escapeRegExp(normalizedKeyword)}\\b`, "g"))?.length ?? 0;
+}
+
 export function keywordMatches(text: string, keyword: string): boolean {
-  const normalizedText = ` ${normalizeKeywordText(text)} `;
   const normalizedKeyword = normalizeKeywordText(keyword);
-  return normalizedKeyword.length > 0 && normalizedText.includes(` ${normalizedKeyword} `);
+  return normalizedKeywordMatches(normalizeKeywordText(text), normalizedKeyword);
 }
 
 export function keywordMatchCount(text: string, keyword: string): number {
   const normalizedKeyword = normalizeKeywordText(keyword);
   if (!normalizedKeyword) return 0;
 
-  const normalizedText = normalizeKeywordText(text);
-  const escaped = normalizedKeyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return normalizedText.match(new RegExp(`\\b${escaped}\\b`, "g"))?.length ?? 0;
+  return normalizedKeywordMatchCount(normalizeKeywordText(text), normalizedKeyword);
 }
 
-export function extractSkills(text: string): string[] {
+export function extractSkillsFromNormalizedText(normalizedText: string): string[] {
   const found = new Set<string>();
-  for (const [skill, aliases] of Object.entries(SKILL_DICTIONARY)) {
-    for (const alias of aliases) {
-      if (keywordMatches(text, alias)) {
+  for (const [skill, aliases] of NORMALIZED_SKILL_ENTRIES) {
+    for (const normalizedAlias of aliases) {
+      if (normalizedKeywordMatches(normalizedText, normalizedAlias)) {
         found.add(skill);
         break;
       }
     }
   }
   return Array.from(found).sort();
+}
+
+export function extractSkills(text: string): string[] {
+  return extractSkillsFromNormalizedText(normalizeKeywordText(text));
 }

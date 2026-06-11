@@ -1,5 +1,11 @@
 import type { AnalysisResult, EvidenceSnippet, ScoreFactor } from "./types";
-import { extractSkills, keywordMatches, keywordMatchCount, SKILL_DICTIONARY } from "./skills-dictionary";
+import {
+  extractSkillsFromNormalizedText,
+  getNormalizedSkillAliases,
+  normalizeKeywordText,
+  normalizedKeywordMatches,
+  normalizedKeywordMatchCount,
+} from "./skills-dictionary";
 
 // Split into sentence/bullet chunks while preserving original text for evidence.
 function chunkText(text: string): string[] {
@@ -101,9 +107,10 @@ function retrieveEvidence(cv: string, jdSkills: string[]): EvidenceSnippet[] {
   const chunks = chunkText(cv);
   const scored = chunks.map((chunk) => {
     const signals: string[] = [];
+    const normalizedChunk = normalizeKeywordText(chunk);
     for (const skill of jdSkills) {
-      const aliases = SKILL_DICTIONARY[skill] || [skill];
-      if (aliases.some((alias) => keywordMatches(chunk, alias))) signals.push(skill);
+      const aliases = getNormalizedSkillAliases(skill);
+      if (aliases.some((alias) => normalizedKeywordMatches(normalizedChunk, alias))) signals.push(skill);
     }
     return { text: chunk, signals, score: signals.length + (hasMetric(chunk) ? 0.5 : 0) };
   });
@@ -125,8 +132,10 @@ export async function runLocalRuleBasedAnalysis(cv: string, jd: string): Promise
   // Simulated latency so the loading state is always visible.
   await new Promise((r) => setTimeout(r, 1100));
 
-  const cvSkills = extractSkills(cv);
-  const jdSkills = extractSkills(jd);
+  const normalizedCv = normalizeKeywordText(cv);
+  const normalizedJd = normalizeKeywordText(jd);
+  const cvSkills = extractSkillsFromNormalizedText(normalizedCv);
+  const jdSkills = extractSkillsFromNormalizedText(normalizedJd);
 
   const skillsFound = cvSkills.filter((s) => jdSkills.includes(s));
   const missingSignals = jdSkills.filter((s) => !cvSkills.includes(s));
@@ -143,8 +152,8 @@ export async function runLocalRuleBasedAnalysis(cv: string, jd: string): Promise
 
   const cvWords = Math.max(1, cv.split(/\s+/).length);
   const keywordHits = jdSkills.reduce((acc, skill) => {
-    const aliases = SKILL_DICTIONARY[skill] || [skill];
-    return acc + aliases.reduce((a, alias) => a + keywordMatchCount(cv, alias), 0);
+    const aliases = getNormalizedSkillAliases(skill);
+    return acc + aliases.reduce((a, alias) => a + normalizedKeywordMatchCount(normalizedCv, alias), 0);
   }, 0);
   const keywordDensity = Math.min(100, Math.round((keywordHits / cvWords) * 100 * 12));
 
