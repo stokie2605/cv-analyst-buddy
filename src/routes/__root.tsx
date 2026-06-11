@@ -88,8 +88,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:site", content: "@Lovable" },
       { name: "twitter:title", content: "Lovable App" },
       { name: "twitter:description", content: "Job Match Pro analyzes your CV against job descriptions to provide actionable application feedback." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/356fc5b5-539b-4179-9577-879ea61312ee/id-preview-280f3d1b--f648bc98-4846-4284-a40a-a535bc00e283.lovable.app-1780497262022.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/356fc5b5-539b-4179-9577-879ea61312ee/id-preview-280f3d1b--f648bc98-4846-4284-a40a-a535bc00e283.lovable.app-1780497262022.png" },
     ],
     links: [
       {
@@ -109,6 +107,10 @@ function RootShell({ children }: { children: ReactNode }) {
     <html lang="en">
       <head>
         <HeadContent />
+        {/* Injected Mozilla PDF Engine CDN */}
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js" />
+        {/* Injected Mammoth Word (.docx) Document Parsing Engine CDN */}
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js" />
       </head>
       <body>
         {children}

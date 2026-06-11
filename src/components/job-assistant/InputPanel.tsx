@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Lock, Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
 
 interface InputPanelProps {
   cv: string;
@@ -28,21 +29,33 @@ function Field({
   onChange: (v: string) => void;
   placeholder: string;
 }) {
+  // Direct interior buffer tracking to bridge async file stream transitions smoothly
+  const [localTextValue, setLocalTextValue] = useState(value);
+
+  useEffect(() => {
+    setLocalTextValue(value);
+  }, [value]);
+
+  const handleTextChange = (newVal: string) => {
+    setLocalTextValue(newVal);
+    onChange(newVal);
+  };
+
   return (
     <Card className="flex flex-col">
       <CardHeader className="pb-3">
         <div className="flex items-baseline justify-between gap-3">
           <CardTitle className="text-base">{title}</CardTitle>
           <span className="text-xs text-muted-foreground tabular-nums">
-            {value.length.toLocaleString()} chars
+            {localTextValue.length.toLocaleString()} chars
           </span>
         </div>
         <p className="text-xs text-muted-foreground">{hint}</p>
       </CardHeader>
       <CardContent className="flex-1">
         <Textarea
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
+          value={localTextValue}
+          onChange={(e) => handleTextChange(e.target.value)}
           placeholder={placeholder}
           className="min-h-[280px] resize-y font-mono text-xs leading-relaxed"
         />
